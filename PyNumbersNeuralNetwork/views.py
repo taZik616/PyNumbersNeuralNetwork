@@ -2,6 +2,7 @@ from django.http import HttpResponse
 import numpy
 import scipy.special
 import os
+import scipy.ndimage
 
 # Read Data
 pwd = os.path.dirname(__file__)
@@ -67,17 +68,37 @@ class NeuralNetwork:
         return final_outputs
         # query
 
-def index(request):
-    outputNodes = 10
-    nn = NeuralNetwork(784, 100, outputNodes, 0.3)
+input_nodes = 784
+hidden_nodes = 200
+output_nodes = 10
+learning_rate = 0.01
+
+nn = NeuralNetwork(input_nodes, hidden_nodes, output_nodes, learning_rate)
+
+epochs = 10
+
+for e in range(epochs):
     for learnItem in learn_data_list:
         # Normalize data
         all_values = learnItem.split(',')
         inputs = (numpy.asfarray(all_values[1:]) / 255.0 * 0.99) + 0.01
-        targets = numpy.zeros(outputNodes) + 0.01
+
+        targets = numpy.zeros(output_nodes) + 0.01
         targets[int(all_values[0])] = 0.99
+
         nn.train(inputs, targets)
+
+        # Rotation
+        inputs_plus_img = scipy.ndimage.interpolation.rotate(inputs.reshape(28,28), 10, cval=0.01, order=1, reshape=False)
+        nn.train(inputs_plus_img.reshape(784), targets)
+
+        inputs_minus_img = scipy.ndimage.interpolation.rotate(inputs.reshape(28,28), -10, cval=0.01, order=1, reshape=False)
+        nn.train(inputs_minus_img.reshape(784), targets)
+
         pass
+    pass
+
+def index(request):
     
     score = 0
     for testItem in test_data_list:
